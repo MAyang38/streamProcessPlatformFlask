@@ -1,14 +1,4 @@
-'''
--------------------------------------------------
-    File name:    __init__.py
-    Description:    Create-Flask-App
-    Author:     RGDZ
-    Data:    2020/01/16 21:17:41
--------------------------------------------------
-   Version:    v1.0
-   Contact:    rgdz.gzu@qq.com
-   License:    (C)Copyright 2020-2021
-'''
+
 
 from flask import Flask
 from flask_cors import *

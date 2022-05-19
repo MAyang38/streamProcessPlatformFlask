@@ -2,12 +2,11 @@
 -------------------------------------------------
     File name:    run.py
     Description:    启动flask
-    Author:     RGDZ
-    Data:    2020/01/17 12:39:33
+
+
 -------------------------------------------------
    Version:    v1.0
-   Contact:    rgdz.gzu@qq.com
-   License:    (C)Copyright 2020-2021
+
 '''
 
 from app import app

@@ -1,13 +1,5 @@
 '''
--------------------------------------------------
-    File name:    __init__.py
-    Description:    数据模型文件
-    Author:     RGDZ
-    Data:    2020/01/16 20:55:09
--------------------------------------------------
-   Version:    v1.0
-   Contact:    rgdz.gzu@qq.com
-   License:    (C)Copyright 2020-2021
+
 '''
 import PIL
 import time

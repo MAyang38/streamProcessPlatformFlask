@@ -2,12 +2,11 @@
 -------------------------------------------------
     File name:    api.py
     Description:    api接口
-    Author:     RGDZ
-    Data:    2020/01/17 12:35:26
+
 -------------------------------------------------
    Version:    v1.0
-   Contact:    rgdz.gzu@qq.com
-   License:    (C)Copyright 2020-2021
+
+
 '''
 import pymysql
 from flask import Blueprint, request, jsonify
@@ -151,7 +150,9 @@ def searchcar():
     """
     ret = {
         'data': [],
-        'coordmap': {}
+        'coordmap': {},
+        'location':{},
+        'count': {}
     }
     guiji=[]
     print("进入")
@@ -162,9 +163,11 @@ def searchcar():
     #注意此处type类型
 
     if terminal == '0':
+        print("全车辆坐标点")
         sql = "select * from car_current_location;"  # 要加单引号！
-    else :
-        sql = "select * from location_info_copy2;"
+    else:
+        print("单车辆轨迹")
+        sql = "select * from location_info_copy1_copy1;"
     try:
         # 执行sql语句
         cursor.execute(sql)
@@ -174,16 +177,22 @@ def searchcar():
             for ele in results:
                 point = [ele[2], ele[3]]
                 ret['coordmap'][ele[0]] = point
+                ret['location'][ele[0]] = ele[4]
+                ret['count'][ele[0]] = ele[6]
                 eledata = {
                     'name': ele[0],
                     'value': 10
                 }
                 ret['data'].append(eledata)
         else:
+            print("返回单车轨迹")
             single = []
+            # print(len(results))
             for ele in results:
-                point = [ele[2], ele[3]]
-                eledata = {'coord': point, 'time': str(ele[1])}
+
+                point = [float(ele[5]), float(ele[4])]
+                # print(point)
+                eledata = {'coord': point, 'time': str(ele[9])}
                 single.append(eledata)
                 # ret['data'].append(eledata)
             guiji.append(single)
@@ -192,10 +201,10 @@ def searchcar():
         print(ret)
         msg = 1
         # return 1
-        content = "登录成功"
+
         if len(results) == 1:
             msg = 1
-            content = "登录成功"
+
             ret["code"] = Code.SUCCESS
             ret['user'] = {
                 'uid': str(1),
@@ -205,7 +214,7 @@ def searchcar():
             return jsonify(ret)
         else:
             msg = 0
-            content = "用户名或密码不正确"
+
             ret["code"] = Code.ERROR
             ret['user'] = {
                 'uid': str(1),
@@ -254,13 +263,13 @@ def search():
     print(type)
     #注意此处type类型
     if type == 1:
-        sql = "select * from car_data_distance;"  # 要加单引号！
+        sql = "select * from car_data_distance_copy2;"  # 要加单引号！
     elif type == 2:
-        sql = "select * from car_data_distance;"
+        sql = "select * from car_data_distance_copy2;"
     elif type == 3:
         sql = "select * from car_speed_exceed;"
     elif type == 4:
-        sql = "select * from car_data_frequency;"
+        sql = "select * from car_data_frequency_copy1;"
     elif type == 5:
         sql = "select * from car_direction_change;"
     try:
@@ -312,10 +321,10 @@ def search():
         print(ret['data'])
         msg = 1
         # return 1
-        content = "登录成功"
+
         if len(results) == 1:
             msg = 1
-            content = "登录成功"
+
             ret["code"] = Code.SUCCESS
             ret['user'] = {
                 'uid': str(1),
@@ -414,21 +423,7 @@ def login():
         ret["code"] = Code.ERROR
 
         return jsonify(ret)
-    #
-    # user = User.objects(userEmail=email).first()
-    # if user:
-    #     if user.verify_pass(password):
-    #         ret["code"] = Code.SUCCESS
-    #         ret['user']={
-    #             'uid':str(user.id),
-    #             'role':user.role,
-    #             'name':user.userName,
-    #             'token':user.token
-    #         }
-    #         return jsonify(ret)
-    #     ret["code"] = Code.ERROR
-    #     return jsonify(ret)
-    # return jsonify(ret)
+
 
 
 @api.route("/register", methods=["POST"])
@@ -523,253 +518,253 @@ def check_exists():
     ret['code'] = Code.NO_EXISTSED
     return jsonify(ret)
 
-@api.route("/userInfo", methods=["GET"])
-def userInfo():
-    """ 获取用户信息接口 
-        请求参数: ?uid=uid
-        返回数据: 
-        {
-            'code':200,
-            'userInfo':{
-                'scoreData':scoreData,
-                'score':score
-                'scoreDFS':scoreDFS
-            }
-        }
-    """
-    ret={'code':Code.NULL, 'userInfo':{}}
-    uid = request.args.get('uid')
-    user = User.objects(pk=uid).first()
-    if user:
-        ret.update({
-        'userInfo':{
-            'name': user.userName,
-            'scoreData':user.scoreData,
-            'solvedStatic':user.solvedStatic,
-            'score':user.score,
-            'scoreDFS':{user.userName:user.scoreDFS}
-        }
-    })
-    ret['code'] = Code.SUCCESS
-    return jsonify(ret)
-
-
-@api.route("/challenges", methods=["POST"])
-# @require_login
-def challenges(user: User, ret: {}):
-    """ 获取challenges数据接口 
-        请求数据:
-        {
-            'ctype':'Pwn',
-            'toke':'token' （可选）
-        }
-        返回数据:
-        {
-            "code":200,
-            "challenges":[
-                {
-                    'cid':cid,
-                    'type':type,
-                    'title':title,
-                    'des':des,
-                    'socre':score,
-                    'solved':solved (根据token)
-                },
-                ...
-            ]
-        }
-    """
-    ret['challenges'] = []
-    ctype = request.get_json(force=True).get('ctype')
-    challenges = Challenge.objects(tIdx=cTypes.index(ctype)).order_by("-createTime")
-    for challenge in challenges:
-        data = {
-            'cid':str(challenge.id),
-            'type':challenge.ctype,
-            'title':challenge.title,
-            'des': challenge.description,
-            'score': challenge.score,
-            'solvers': len(challenge.solvers),
-            'solved': False
-            }
-        if user:
-            data.update({'solved':challenge in user.solveds})
-        ret['challenges'].append(data)
-    return jsonify(ret)
-        
-
-
-@api.route("/submit_flag", methods=['POST'])
-# @require_login
-def submit_flag(user: User, ret: {}):
-    """ 提交flag接口 
-        请求数据:
-        {
-            'token':token,
-            'cid':cid,
-            'flag':flag
-        }
-        返回数据:
-        {
-            "code":200,
-        }
-    """
-    json_data = request.get_json(force=True)
-    cid = json_data.get('cid')
-    flag = json_data.get('flag')
-    if user:
-        challenge = Challenge.objects(pk=cid).first()
-        ret['code'] = Code.FLAG_EXISTED
-        if challenge not in user.solveds:
-            ret['code'] = Code.FLAG_ERROR
-            if challenge.verify_flag(flag):
-                user.solved_challenge(challenge)
-                ret['code'] = Code.SUCCESS
-    return jsonify(ret)
-    
-    
-
-@api.route('/add_challenge', methods=['POST'])
-# @require_login
-# @admin
-def add_challenge(ret: {}):
-    """ 添加题目接口 
-        请求数据:
-        {
-            'token':token
-            'type':type,
-            'title':title,
-            'des':des,
-            'score':score,
-            'flag':flag
-        }
-        返回数据:
-        {
-            "code":200,
-        }
-    """
-    json_data = request.get_json(force=True)
-    tIdx = cTypes.index(json_data.get('type'))
-    title = json_data.get('title')
-    des = json_data.get('des')
-    score = json_data.get('score')
-    flag = json_data.get('flag')
-    Challenge.init(tIdx, title, des, score, flag)
-    ret['code'] = Code.SUCCESS
-    return jsonify(ret)
-
-
-@api.route('/del_challenge', methods=['POST'])
-# @require_login
-# @admin
-def del_challenge(ret: {}):
-    """ 删除题目接口 
-        请求数据:
-        {
-            'token':token,
-            'cid':cid
-        }
-    """
-    cid = request.get_json(force=True).get('cid')
-    Challenge.objects(id=cid).first().delete()
-    Challenge.objects(id=cid).delete()
-    ret['code'] = Code.SUCCESS
-    return jsonify(ret)
-
-
-@api.route('/announcements', methods=['GET'])
-def announcements():
-    """ 获取公告信息接口 
-        请求参数: /
-        返回数据: 
-        {
-            'code':200,
-            'anncs':[]
-        }
-    """
-    ret = {
-        'code':Code.NULL,
-        'anncs':[]
-    }
-    for annc in Announcement.objects().order_by("-createTime"):
-        ret['anncs'].append({
-            'aid':str(annc.id),
-            'title':annc.title,
-            'body':annc.body,
-            'createTime':annc.date
-        })
-    ret['code'] = Code.SUCCESS
-    return jsonify(ret)
-
-
-@api.route('/add_announcement', methods=['POST'])
-# @require_login
-# @admin
-def add_announcement(ret: {}):
-    """ 添加公告接口 
-        请求数据: 
-        {
-            'token':token,
-            'title':title,
-            'body':body
-        }
-        返回数据:
-        {
-            'code':200,
-        }
-    """
-    json_data = request.get_json(force=True)
-    title = json_data['title']
-    body = json_data['body']
-    Announcement.init(title, body)
-    ret['code'] = Code.SUCCESS
-    return jsonify(ret)
-
-
-@api.route('/del_announcement', methods=['POST'])
-# @require_login
-# @admin
-def del_announcement(ret: {}):
-    """ 删除公告接口 
-        请求数据: 
-        {
-            'aid':aid
-        }
-        返回数据:
-        {
-            'code':200,
-        }
-    """
-    aid = request.get_json(force=True).get('aid')
-    Announcement.objects(pk=aid).delete()
-    ret['code'] = Code.SUCCESS
-    return jsonify(ret)
-
-
-@api.route('/score_card', methods=["GET"])
-def score_card():
-    """ 计分板数据接口
-        返回数据:
-        {
-            'code':200,
-            'msg':success,
-            'data':[
-                {
-                    'rank': 1,
-                    'name': 'aaa',
-                    'solved': 5,
-                    'score': 900
-                },
-                ...
-            ]
-        }
-    """
-    ret = {'code':Code.NULL, 'table':[], 'top10':{}}
-    ret['table'] = User.static()
-    for idx in range(len(ret['table'])):
-        if idx>10:
-            break
-        user = User.objects(pk=ret['table'][idx]['uid']).first()
-        ret['top10'].update({user.userName:user.scoreDFS})
-    ret['code'] = Code.SUCCESS
-    return jsonify(ret)
+# @api.route("/userInfo", methods=["GET"])
+# def userInfo():
+#     """ 获取用户信息接口
+#         请求参数: ?uid=uid
+#         返回数据:
+#         {
+#             'code':200,
+#             'userInfo':{
+#                 'scoreData':scoreData,
+#                 'score':score
+#                 'scoreDFS':scoreDFS
+#             }
+#         }
+#     """
+#     ret={'code':Code.NULL, 'userInfo':{}}
+#     uid = request.args.get('uid')
+#     user = User.objects(pk=uid).first()
+#     if user:
+#         ret.update({
+#         'userInfo':{
+#             'name': user.userName,
+#             'scoreData':user.scoreData,
+#             'solvedStatic':user.solvedStatic,
+#             'score':user.score,
+#             'scoreDFS':{user.userName:user.scoreDFS}
+#         }
+#     })
+#     ret['code'] = Code.SUCCESS
+#     return jsonify(ret)
+#
+#
+# @api.route("/challenges", methods=["POST"])
+# # @require_login
+# def challenges(user: User, ret: {}):
+#     """ 获取challenges数据接口
+#         请求数据:
+#         {
+#             'ctype':'Pwn',
+#             'toke':'token' （可选）
+#         }
+#         返回数据:
+#         {
+#             "code":200,
+#             "challenges":[
+#                 {
+#                     'cid':cid,
+#                     'type':type,
+#                     'title':title,
+#                     'des':des,
+#                     'socre':score,
+#                     'solved':solved (根据token)
+#                 },
+#                 ...
+#             ]
+#         }
+#     """
+#     ret['challenges'] = []
+#     ctype = request.get_json(force=True).get('ctype')
+#     challenges = Challenge.objects(tIdx=cTypes.index(ctype)).order_by("-createTime")
+#     for challenge in challenges:
+#         data = {
+#             'cid':str(challenge.id),
+#             'type':challenge.ctype,
+#             'title':challenge.title,
+#             'des': challenge.description,
+#             'score': challenge.score,
+#             'solvers': len(challenge.solvers),
+#             'solved': False
+#             }
+#         if user:
+#             data.update({'solved':challenge in user.solveds})
+#         ret['challenges'].append(data)
+#     return jsonify(ret)
+#
+#
+#
+# @api.route("/submit_flag", methods=['POST'])
+# # @require_login
+# def submit_flag(user: User, ret: {}):
+#     """ 提交flag接口
+#         请求数据:
+#         {
+#             'token':token,
+#             'cid':cid,
+#             'flag':flag
+#         }
+#         返回数据:
+#         {
+#             "code":200,
+#         }
+#     """
+#     json_data = request.get_json(force=True)
+#     cid = json_data.get('cid')
+#     flag = json_data.get('flag')
+#     if user:
+#         challenge = Challenge.objects(pk=cid).first()
+#         ret['code'] = Code.FLAG_EXISTED
+#         if challenge not in user.solveds:
+#             ret['code'] = Code.FLAG_ERROR
+#             if challenge.verify_flag(flag):
+#                 user.solved_challenge(challenge)
+#                 ret['code'] = Code.SUCCESS
+#     return jsonify(ret)
+#
+#
+#
+# @api.route('/add_challenge', methods=['POST'])
+# # @require_login
+# # @admin
+# def add_challenge(ret: {}):
+#     """ 添加题目接口
+#         请求数据:
+#         {
+#             'token':token
+#             'type':type,
+#             'title':title,
+#             'des':des,
+#             'score':score,
+#             'flag':flag
+#         }
+#         返回数据:
+#         {
+#             "code":200,
+#         }
+#     """
+#     json_data = request.get_json(force=True)
+#     tIdx = cTypes.index(json_data.get('type'))
+#     title = json_data.get('title')
+#     des = json_data.get('des')
+#     score = json_data.get('score')
+#     flag = json_data.get('flag')
+#     Challenge.init(tIdx, title, des, score, flag)
+#     ret['code'] = Code.SUCCESS
+#     return jsonify(ret)
+#
+#
+# @api.route('/del_challenge', methods=['POST'])
+# # @require_login
+# # @admin
+# def del_challenge(ret: {}):
+#     """ 删除题目接口
+#         请求数据:
+#         {
+#             'token':token,
+#             'cid':cid
+#         }
+#     """
+#     cid = request.get_json(force=True).get('cid')
+#     Challenge.objects(id=cid).first().delete()
+#     Challenge.objects(id=cid).delete()
+#     ret['code'] = Code.SUCCESS
+#     return jsonify(ret)
+#
+#
+# @api.route('/announcements', methods=['GET'])
+# def announcements():
+#     """ 获取公告信息接口
+#         请求参数: /
+#         返回数据:
+#         {
+#             'code':200,
+#             'anncs':[]
+#         }
+#     """
+#     ret = {
+#         'code':Code.NULL,
+#         'anncs':[]
+#     }
+#     for annc in Announcement.objects().order_by("-createTime"):
+#         ret['anncs'].append({
+#             'aid':str(annc.id),
+#             'title':annc.title,
+#             'body':annc.body,
+#             'createTime':annc.date
+#         })
+#     ret['code'] = Code.SUCCESS
+#     return jsonify(ret)
+#
+#
+# @api.route('/add_announcement', methods=['POST'])
+# # @require_login
+# # @admin
+# def add_announcement(ret: {}):
+#     """ 添加公告接口
+#         请求数据:
+#         {
+#             'token':token,
+#             'title':title,
+#             'body':body
+#         }
+#         返回数据:
+#         {
+#             'code':200,
+#         }
+#     """
+#     json_data = request.get_json(force=True)
+#     title = json_data['title']
+#     body = json_data['body']
+#     Announcement.init(title, body)
+#     ret['code'] = Code.SUCCESS
+#     return jsonify(ret)
+#
+#
+# @api.route('/del_announcement', methods=['POST'])
+# # @require_login
+# # @admin
+# def del_announcement(ret: {}):
+#     """ 删除公告接口
+#         请求数据:
+#         {
+#             'aid':aid
+#         }
+#         返回数据:
+#         {
+#             'code':200,
+#         }
+#     """
+#     aid = request.get_json(force=True).get('aid')
+#     Announcement.objects(pk=aid).delete()
+#     ret['code'] = Code.SUCCESS
+#     return jsonify(ret)
+#
+#
+# @api.route('/score_card', methods=["GET"])
+# def score_card():
+#     """ 计分板数据接口
+#         返回数据:
+#         {
+#             'code':200,
+#             'msg':success,
+#             'data':[
+#                 {
+#                     'rank': 1,
+#                     'name': 'aaa',
+#                     'solved': 5,
+#                     'score': 900
+#                 },
+#                 ...
+#             ]
+#         }
+#     """
+#     ret = {'code':Code.NULL, 'table':[], 'top10':{}}
+#     ret['table'] = User.static()
+#     for idx in range(len(ret['table'])):
+#         if idx>10:
+#             break
+#         user = User.objects(pk=ret['table'][idx]['uid']).first()
+#         ret['top10'].update({user.userName:user.scoreDFS})
+#     ret['code'] = Code.SUCCESS
+#     return jsonify(ret)
